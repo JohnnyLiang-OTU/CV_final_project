@@ -12,7 +12,7 @@ class LinearModel(nn.Module):
         self.fc = nn.Linear(32*32*3, 10)
 
     def forward(self, x):
-        x = torch.flatten(x, 0)
+        x = torch.flatten(x, 1)
         x = self.fc(x)
         return x
     
