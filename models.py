@@ -126,3 +126,18 @@ class ResNet(nn.Module):
         x = self.output_layer(x)              # FC to 10
         
         return x
+    
+class DeepResnet():
+    def __init__(self):
+        pass
+
+    def forward(self):
+        pass
+
+
+class DeepCNN():
+    def __init__(self):
+        pass
+    
+    def forward(self):
+        pass
