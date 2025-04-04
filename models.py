@@ -184,63 +184,165 @@ class DeepCNN(nn.Module):
 
         return x
 
-class DeepResnet(nn.Module):
-    def __init__(self, in_chan, out_chan, kernel_size=3, stride=1, padding=1):
+class ModifiedDeepCNN(nn.Module):
+    def __init__(self, in_chan, out_chan=3, kernel_size=3, stride=1, padding=1):
         super().__init__()
-        print("updated3")
-        self.res1 = nn.Conv2d(out_chan*36, out_chan*60, kernel_size=1, stride=1, padding=0, bias=False)
+        print("Modified DeepCNN (same architecture as ImprovedDeepResnet but NO residuals)")
+        
+        # Same channel dimensions as ImprovedDeepResnet
+        self.exp1 = out_chan * 12  # 12x out_chan
+        self.exp2 = out_chan * 24  # 24x out_chan
+        self.exp3 = out_chan * 36  # 36x out_chan
+        self.exp4 = out_chan * 48  # 48x out_chan
+        self.exp5 = out_chan * 60  # 60x out_chan
 
-        self.conv1 = nn.Conv2d(in_chan, out_chan*36, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
-        self.bNorm1 = nn.BatchNorm2d(out_chan*36)
+        # Conv blocks (same as ImprovedDeepResnet but without residual shortcuts)
+        self.conv1 = nn.Conv2d(in_chan, self.exp1, kernel_size, stride, padding, bias=False)
+        self.bn1 = nn.BatchNorm2d(self.exp1)
         self.relu = nn.ReLU()
-        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0) # 32x32x6 -> 16x16x6
+        self.maxpool = nn.MaxPool2d(2, 2)
 
-        self.conv2 = nn.Conv2d(out_chan*36, out_chan*60, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
-        self.bNorm2 = nn.BatchNorm2d(out_chan*60)
+        self.conv2 = nn.Conv2d(self.exp1, self.exp2, kernel_size, stride, padding, bias=False)
+        self.bn2 = nn.BatchNorm2d(self.exp2)
 
-        self.conv3 = nn.Conv2d(out_chan*60, out_chan*84, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
-        self.bNorm3 = nn.BatchNorm2d(out_chan*84)
+        self.conv3 = nn.Conv2d(self.exp2, self.exp3, kernel_size, stride, padding, bias=False)
+        self.bn3 = nn.BatchNorm2d(self.exp3)
 
-        self.conv4 = nn.Conv2d(out_chan*84, out_chan*108, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
-        self.bNorm4 = nn.BatchNorm2d(out_chan*108)
+        self.conv4 = nn.Conv2d(self.exp3, self.exp4, kernel_size, stride, padding, bias=False)
+        self.bn4 = nn.BatchNorm2d(self.exp4)
 
-        self.conv5 = nn.Conv2d(out_chan*108, out_chan*132, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
-        self.bNorm5 = nn.BatchNorm2d(out_chan*132)
+        self.conv5 = nn.Conv2d(self.exp4, self.exp5, kernel_size, stride, padding, bias=False)
+        self.bn5 = nn.BatchNorm2d(self.exp5)
 
+        # Same dropout and classifier as ImprovedDeepResnet
+        self.dropout = nn.Dropout(0.25)
         self.flatten = nn.Flatten()
-        self.fc = nn.Linear(8*8*out_chan*132, 512)
+        self.fc = nn.Linear(8 * 8 * self.exp5, 512)
         self.out = nn.Linear(512, 10)
 
     def forward(self, x):
+        # Block 1
         x = self.conv1(x)
-        x = self.bNorm1(x)
+        x = self.bn1(x)
         x = self.relu(x)
-        x1 = x  # Save for shortcut
+        x = self.maxpool(x)  # Downsample early (same as ResNet version)
 
+        # Block 2 (no residual)
         x = self.conv2(x)
-        x = self.bNorm2(x)
-        
-        # Residual connection
-        res_x1 = self.res1(x1)  # Match dimensions
-        x += res_x1  # Add shortcut
+        x = self.bn2(x)
         x = self.relu(x)
 
+        # Block 3 (no residual)
         x = self.conv3(x)
-        x = self.bNorm3(x)
+        x = self.bn3(x)
         x = self.relu(x)
-        x = self.maxpool(x)
+        x = self.maxpool(x)  # Downsample again (same as ResNet version)
 
+        # Block 4 (no residual)
         x = self.conv4(x)
-        x = self.bNorm4(x)
+        x = self.bn4(x)
         x = self.relu(x)
-        x = self.maxpool(x)
 
+        # Block 5 (no residual)
         x = self.conv5(x)
-        x = self.bNorm5(x)
+        x = self.bn5(x)
         x = self.relu(x)
 
+        # Classifier (identical to ResNet version)
         x = self.flatten(x)
+        x = self.dropout(x)
         x = self.fc(x)
+        x = self.relu(x)
+        x = self.dropout(x)  # Optional
+        x = self.out(x)
+
+        return x
+
+class ImprovedDeepResnet(nn.Module):
+    def __init__(self, in_chan, out_chan=3, kernel_size=3, stride=1, padding=1):
+        super().__init__()
+        print("Improved DeepResnet with more residual connections")
+        
+        # Reduced channel expansion factors (smaller network)
+        self.exp1 = out_chan * 12  # 36 -> 12 (since out_chan=3 → 36 → 108 channels was too large)
+        self.exp2 = out_chan * 24   # 60 -> 24
+        self.exp3 = out_chan * 36   # 84 -> 36
+        self.exp4 = out_chan * 48   # 108 -> 48
+        self.exp5 = out_chan * 60   # 132 -> 60
+
+        # Initial conv block
+        self.conv1 = nn.Conv2d(in_chan, self.exp1, kernel_size, stride, padding, bias=False)
+        self.bn1 = nn.BatchNorm2d(self.exp1)
+        self.relu = nn.ReLU()
+        self.maxpool = nn.MaxPool2d(2, 2)
+
+        # Residual blocks with shortcuts
+        self.conv2 = nn.Conv2d(self.exp1, self.exp2, kernel_size, stride, padding, bias=False)
+        self.bn2 = nn.BatchNorm2d(self.exp2)
+        self.res1 = nn.Conv2d(self.exp1, self.exp2, kernel_size=1, stride=1, bias=False)  # Shortcut for res1
+
+        self.conv3 = nn.Conv2d(self.exp2, self.exp3, kernel_size, stride, padding, bias=False)
+        self.bn3 = nn.BatchNorm2d(self.exp3)
+        self.res2 = nn.Conv2d(self.exp2, self.exp3, kernel_size=1, stride=1, bias=False)  # Shortcut for res2
+
+        self.conv4 = nn.Conv2d(self.exp3, self.exp4, kernel_size, stride, padding, bias=False)
+        self.bn4 = nn.BatchNorm2d(self.exp4)
+        self.res3 = nn.Conv2d(self.exp3, self.exp4, kernel_size=1, stride=1, bias=False)  # Shortcut for res3
+
+        self.conv5 = nn.Conv2d(self.exp4, self.exp5, kernel_size, stride, padding, bias=False)
+        self.bn5 = nn.BatchNorm2d(self.exp5)
+        self.res4 = nn.Conv2d(self.exp4, self.exp5, kernel_size=1, stride=1, bias=False)  # Shortcut for res4
+
+        # Regularization
+        self.dropout = nn.Dropout(0.25)  # Helps prevent overfitting
+
+        # Classifier
+        self.flatten = nn.Flatten()
+        self.fc = nn.Linear(8 * 8 * self.exp5, 512)  # Adjusted for new channel size
+        self.out = nn.Linear(512, 10)
+
+    def forward(self, x):
+        # Initial block
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)  # Downsample early to reduce computation
+
+        # Residual block 1
+        residual = self.res1(x)
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x += residual
+        x = self.relu(x)
+
+        # Residual block 2
+        residual = self.res2(x)
+        x = self.conv3(x)
+        x = self.bn3(x)
+        x += residual
+        x = self.relu(x)
+        x = self.maxpool(x)  # Downsample again
+
+        # Residual block 3
+        residual = self.res3(x)
+        x = self.conv4(x)
+        x = self.bn4(x)
+        x += residual
+        x = self.relu(x)
+
+        # Residual block 4
+        residual = self.res4(x)
+        x = self.conv5(x)
+        x = self.bn5(x)
+        x += residual
+        x = self.relu(x)
+
+        # Classifier
+        x = self.flatten(x)
+        x = self.dropout(x)  # Regularization before FC
+        x = self.fc(x)
+        x = self.relu(x)
+        x = self.dropout(x)  # Optional: Additional dropout before output
         x = self.out(x)
 
         return x
