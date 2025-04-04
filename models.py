@@ -253,7 +253,6 @@ class ModifiedDeepCNN(nn.Module):
         x = self.dropout(x)
         x = self.fc(x)
         x = self.relu(x)
-        x = self.dropout(x)  # Optional
         x = self.out(x)
 
         return x
@@ -342,7 +341,6 @@ class ImprovedDeepResnet(nn.Module):
         x = self.dropout(x)  # Regularization before FC
         x = self.fc(x)
         x = self.relu(x)
-        x = self.dropout(x)  # Optional: Additional dropout before output
         x = self.out(x)
 
         return x
