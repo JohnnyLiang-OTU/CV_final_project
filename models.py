@@ -127,13 +127,6 @@ class ResNet(nn.Module):
         
         return x
     
-class DeepResnet():
-    def __init__(self):
-        pass
-
-    def forward(self):
-        pass
-
 
 class DeepCNN(nn.Module):
     def __init__(self, in_chan, out_chan, kernel_size=3, stride=1, padding=1):
@@ -190,3 +183,147 @@ class DeepCNN(nn.Module):
         x = self.out(x)
 
         return x
+
+class DeepResnet(nn.Module):
+    def __init__(self, in_chan, out_chan, kernel_size=3, stride=1, padding=1):
+        super().__init__()
+        print("updated3")
+        self.res1 = nn.Conv2d(out_chan*36, out_chan*60, kernel_size=1, stride=1, padding=0, bias=False)
+
+        self.conv1 = nn.Conv2d(in_chan, out_chan*36, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
+        self.bNorm1 = nn.BatchNorm2d(out_chan*36)
+        self.relu = nn.ReLU()
+        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0) # 32x32x6 -> 16x16x6
+
+        self.conv2 = nn.Conv2d(out_chan*36, out_chan*60, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
+        self.bNorm2 = nn.BatchNorm2d(out_chan*60)
+
+        self.conv3 = nn.Conv2d(out_chan*60, out_chan*84, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
+        self.bNorm3 = nn.BatchNorm2d(out_chan*84)
+
+        self.conv4 = nn.Conv2d(out_chan*84, out_chan*108, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
+        self.bNorm4 = nn.BatchNorm2d(out_chan*108)
+
+        self.conv5 = nn.Conv2d(out_chan*108, out_chan*132, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
+        self.bNorm5 = nn.BatchNorm2d(out_chan*132)
+
+        self.flatten = nn.Flatten()
+        self.fc = nn.Linear(8*8*out_chan*132, 512)
+        self.out = nn.Linear(512, 10)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bNorm1(x)
+        x = self.relu(x)
+        x1 = x  # Save for shortcut
+
+        x = self.conv2(x)
+        x = self.bNorm2(x)
+        
+        # Residual connection
+        res_x1 = self.res1(x1)  # Match dimensions
+        x += res_x1  # Add shortcut
+        x = self.relu(x)
+
+        x = self.conv3(x)
+        x = self.bNorm3(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.conv4(x)
+        x = self.bNorm4(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.conv5(x)
+        x = self.bNorm5(x)
+        x = self.relu(x)
+
+        x = self.flatten(x)
+        x = self.fc(x)
+        x = self.out(x)
+
+        return x
+
+
+# class BlockA(nn.Module):
+#     def __init__(self, in_chan, out_chan):
+#         super().__init__()
+
+#         self.model = nn.Sequential(
+#             nn.Conv2d(in_chan, out_chan, kernel_size=3, stride=1, padding=1),
+#             nn.BatchNorm2d(out_chan),
+#             nn.ReLU(),
+#             nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+#         )
+
+#     def forward(self, x):
+#         return self.model(x)
+
+
+# class BlockB(nn.Module):
+#     def __init__(self, in_chan, out_chan):
+#         super().__init__()
+
+#         self.model = nn.Sequential(
+#             nn.Conv2d(in_chan, out_chan, kernel_size=3, stride=1, padding=1),
+#             nn.BatchNorm2d(out_chan),
+#             nn.ReLU(),
+#         )
+
+#     def forward(self, x):
+#         return self.model(x)
+
+
+# class DeepResnet(nn.Module):
+#     def __init__(self, in_chan, out_chan):
+#         super().__init__()
+#         print("aa")
+#         self.downsample1 = nn.Sequential(
+#             nn.Conv2d(3, out_chan*60, kernel_size=3, stride=1, padding=1),
+#             nn.BatchNorm2d(out_chan*60)
+#         )
+
+#         self.downsample2 = nn.Sequential(
+#             nn.Conv2d(3, out_chan*108, kernel_size=3, stride=4, padding=1),
+#             nn.BatchNorm2d(out_chan*108)
+#         )
+
+#         self.relu = nn.ReLU()
+#         self.layer1 = self.build_block(in_chan, out_chan*36, isA=False)
+#         self.layer2 = self.build_block(in_chan*36, out_chan*60, isA=False)
+#         self.layer3 = self.build_block(in_chan*60, out_chan*84, isA=True)
+#         self.layer4 = self.build_block(in_chan*84, out_chan*108, isA=True)
+#         self.layer5 = self.build_block(in_chan*108, out_chan*132, isA=False)
+
+#         self.global_avg_pool = nn.AdaptiveAvgPool2d((1,1))
+#         self.fc = nn.Linear(132*out_chan, 512)
+#         self.out = nn.Linear(512, 10)
+
+#     def forward(self, x):
+#         id1 = self.downsample1(x)
+#         id2 = self.downsample2(x)
+
+#         x = self.layer1(x)
+#         x = self.layer2(x)
+#         x = x + id1
+#         x = self.relu(x)
+
+#         x = self.layer3(x)
+#         x = self.layer4(x)
+#         x + x + id2
+#         x = self.relu(x)
+
+#         x = self.layer5(x)
+
+#         x = self.global_avg_pool(x)
+#         x = torch.flatten(x, 1)
+#         x = self.fc(x)
+#         x = self.out(x)
+
+#         return x
+
+#     def build_block(self, in_chan, out_chan, isA=True):
+#         if isA:
+#             return BlockA(in_chan, out_chan)
+#         return BlockB(in_chan, out_chan)
