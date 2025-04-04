@@ -135,9 +135,58 @@ class DeepResnet():
         pass
 
 
-class DeepCNN():
-    def __init__(self):
-        pass
+class DeepCNN(nn.Module):
+    def __init__(self, in_chan, out_chan, kernel_size=3, stride=1, padding=1):
+        super().__init__()
+        print("updated2")
+        self.conv1 = nn.Conv2d(in_chan, out_chan*24, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
+        self.bNorm1 = nn.BatchNorm2d(out_chan*24)
+        self.relu = nn.ReLU()
+        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0) # 32x32x6 -> 16x16x6
+
+        self.conv2 = nn.Conv2d(out_chan*24, out_chan*48, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
+        self.bNorm2 = nn.BatchNorm2d(out_chan*48)
+
+        self.conv3 = nn.Conv2d(out_chan*48, out_chan*72, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
+        self.bNorm3 = nn.BatchNorm2d(out_chan*72)
+
+        self.conv4 = nn.Conv2d(out_chan*72, out_chan*96, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
+        self.bNorm4 = nn.BatchNorm2d(out_chan*96)
+
+        self.conv5 = nn.Conv2d(out_chan*96, out_chan*120, kernel_size=kernel_size, stride=stride, padding=padding, bias=False) # 
+        self.bNorm5 = nn.BatchNorm2d(out_chan*120)
+
+        self.flatten = nn.Flatten()
+        self.fc = nn.Linear(8*8*out_chan*120, 512)
+        self.out = nn.Linear(512, 10)
+
     
-    def forward(self):
-        pass
+    
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bNorm1(x)
+        x = self.relu(x)
+
+        x = self.conv2(x)
+        x = self.bNorm2(x)
+        x = self.relu(x)
+
+        x = self.conv3(x)
+        x = self.bNorm3(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.conv4(x)
+        x = self.bNorm4(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.conv5(x)
+        x = self.bNorm5(x)
+        x = self.relu(x)
+
+        x = self.flatten(x)
+        x = self.fc(x)
+        x = self.out(x)
+
+        return x
