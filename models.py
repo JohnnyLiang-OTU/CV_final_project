@@ -187,7 +187,7 @@ class DeepCNN(nn.Module):
 class ModifiedDeepCNN(nn.Module):
     def __init__(self, in_chan, out_chan=3, kernel_size=3, stride=1, padding=1):
         super().__init__()
-        print("Modified DeepCNN (same architecture as ImprovedDeepResnet but NO residuals)")
+        # print("debug msg")
         
         # Same channel dimensions as ImprovedDeepResnet
         self.exp1 = out_chan * 12  # 12x out_chan
@@ -225,7 +225,7 @@ class ModifiedDeepCNN(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-        x = self.maxpool(x)  # Downsample early (same as ResNet version)
+        x = self.maxpool(x)  
 
         # Block 2 (no residual)
         x = self.conv2(x)
@@ -236,7 +236,7 @@ class ModifiedDeepCNN(nn.Module):
         x = self.conv3(x)
         x = self.bn3(x)
         x = self.relu(x)
-        x = self.maxpool(x)  # Downsample again (same as ResNet version)
+        x = self.maxpool(x)  
 
         # Block 4 (no residual)
         x = self.conv4(x)
@@ -248,7 +248,6 @@ class ModifiedDeepCNN(nn.Module):
         x = self.bn5(x)
         x = self.relu(x)
 
-        # Classifier (identical to ResNet version)
         x = self.flatten(x)
         x = self.dropout(x)
         x = self.fc(x)
@@ -262,12 +261,11 @@ class ImprovedDeepResnet(nn.Module):
         super().__init__()
         print("Improved DeepResnet with more residual connections")
         
-        # Reduced channel expansion factors (smaller network)
-        self.exp1 = out_chan * 12  # 36 -> 12 (since out_chan=3 → 36 → 108 channels was too large)
-        self.exp2 = out_chan * 24   # 60 -> 24
-        self.exp3 = out_chan * 36   # 84 -> 36
-        self.exp4 = out_chan * 48   # 108 -> 48
-        self.exp5 = out_chan * 60   # 132 -> 60
+        self.exp1 = out_chan * 12
+        self.exp2 = out_chan * 24
+        self.exp3 = out_chan * 36
+        self.exp4 = out_chan * 48
+        self.exp5 = out_chan * 60
 
         # Initial conv block
         self.conv1 = nn.Conv2d(in_chan, self.exp1, kernel_size, stride, padding, bias=False)
@@ -278,26 +276,26 @@ class ImprovedDeepResnet(nn.Module):
         # Residual blocks with shortcuts
         self.conv2 = nn.Conv2d(self.exp1, self.exp2, kernel_size, stride, padding, bias=False)
         self.bn2 = nn.BatchNorm2d(self.exp2)
-        self.res1 = nn.Conv2d(self.exp1, self.exp2, kernel_size=1, stride=1, bias=False)  # Shortcut for res1
+        self.res1 = nn.Conv2d(self.exp1, self.exp2, kernel_size=1, stride=1, bias=False)
 
         self.conv3 = nn.Conv2d(self.exp2, self.exp3, kernel_size, stride, padding, bias=False)
         self.bn3 = nn.BatchNorm2d(self.exp3)
-        self.res2 = nn.Conv2d(self.exp2, self.exp3, kernel_size=1, stride=1, bias=False)  # Shortcut for res2
+        self.res2 = nn.Conv2d(self.exp2, self.exp3, kernel_size=1, stride=1, bias=False)
 
         self.conv4 = nn.Conv2d(self.exp3, self.exp4, kernel_size, stride, padding, bias=False)
         self.bn4 = nn.BatchNorm2d(self.exp4)
-        self.res3 = nn.Conv2d(self.exp3, self.exp4, kernel_size=1, stride=1, bias=False)  # Shortcut for res3
+        self.res3 = nn.Conv2d(self.exp3, self.exp4, kernel_size=1, stride=1, bias=False)
 
         self.conv5 = nn.Conv2d(self.exp4, self.exp5, kernel_size, stride, padding, bias=False)
         self.bn5 = nn.BatchNorm2d(self.exp5)
-        self.res4 = nn.Conv2d(self.exp4, self.exp5, kernel_size=1, stride=1, bias=False)  # Shortcut for res4
+        self.res4 = nn.Conv2d(self.exp4, self.exp5, kernel_size=1, stride=1, bias=False)
 
         # Regularization
-        self.dropout = nn.Dropout(0.25)  # Helps prevent overfitting
+        self.dropout = nn.Dropout(0.25)  
 
         # Classifier
         self.flatten = nn.Flatten()
-        self.fc = nn.Linear(8 * 8 * self.exp5, 512)  # Adjusted for new channel size
+        self.fc = nn.Linear(8 * 8 * self.exp5, 512)
         self.out = nn.Linear(512, 10)
 
     def forward(self, x):
@@ -305,7 +303,7 @@ class ImprovedDeepResnet(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-        x = self.maxpool(x)  # Downsample early to reduce computation
+        x = self.maxpool(x)
 
         # Residual block 1
         residual = self.res1(x)
@@ -320,7 +318,7 @@ class ImprovedDeepResnet(nn.Module):
         x = self.bn3(x)
         x += residual
         x = self.relu(x)
-        x = self.maxpool(x)  # Downsample again
+        x = self.maxpool(x)
 
         # Residual block 3
         residual = self.res3(x)
@@ -338,7 +336,7 @@ class ImprovedDeepResnet(nn.Module):
 
         # Classifier
         x = self.flatten(x)
-        x = self.dropout(x)  # Regularization before FC
+        x = self.dropout(x)
         x = self.fc(x)
         x = self.relu(x)
         x = self.out(x)
